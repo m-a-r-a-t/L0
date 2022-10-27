@@ -10,8 +10,15 @@ type getOrderController struct {
 }
 
 func (c *getOrderController) GetOrder(f *fiber.Ctx) error {
-	// queryData := validator.ValidatQueryeAndGetData[GetOrderQuery](f.QueryParser())
-	order, err := c.orderService.GetOrderById("fdsfdsf")
+	// queryData, err := validator.ValidatQueryeAndGetData[GetOrderQuery]()
+	var query GetOrderQuery
+	err := f.QueryParser(&query)
+
+	if err != nil {
+		return err
+	}
+
+	order, err := c.orderService.GetOrderById(query.id)
 	if err != nil {
 		return err
 	}

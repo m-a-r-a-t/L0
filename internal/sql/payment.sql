@@ -1,6 +1,5 @@
 CREATE TABLE public."Payment" (
 	"transaction" text NOT NULL,
-	"name" text NOT NULL,
 	request_id text NOT NULL,
 	currency varchar(25) NOT NULL,
 	provider text NOT NULL,
@@ -12,3 +11,4 @@ CREATE TABLE public."Payment" (
 	custom_fee int4 NOT NULL,
 	CONSTRAINT "Payment_transaction_fkey" FOREIGN KEY ("transaction") REFERENCES public."Order"(order_uid) ON DELETE CASCADE
 );
+

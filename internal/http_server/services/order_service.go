@@ -2,10 +2,13 @@ package services
 
 import (
 	"database/sql"
+	"encoding/json"
+
+	"github.com/m-a-r-a-t/L0/internal/http_server/models"
 )
 
 type orderRepo interface {
-	GetOrderById(id string)
+	GetOrderById(id string) (*models.Order, error)
 }
 
 type orderService struct {
@@ -19,11 +22,24 @@ func (o *orderService) AddOrder() error {
 }
 
 func (o *orderService) GetOrderById(id string) ([]byte, error) {
+
 	if data, ok := (*o.ordersCache)[id]; ok {
 		return data, nil
 	}
 
-	return []byte("fd"), nil
+	order, err := o.orderRepo.GetOrderById(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := json.Marshal(order)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 
 }
 

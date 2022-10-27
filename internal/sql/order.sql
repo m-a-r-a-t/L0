@@ -1,5 +1,5 @@
 CREATE TABLE public."Order" (
-	order_uid text primary key not null,
+	order_uid text primary key unique not null,
 	track_number text not null,
 	entry text not null,
 	locale varchar(25) not null,
