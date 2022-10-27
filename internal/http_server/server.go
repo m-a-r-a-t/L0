@@ -4,8 +4,9 @@ import (
 	"database/sql"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/m-a-r-a-t/L0/internal/http_server/order"
-	"github.com/m-a-r-a-t/L0/internal/services"
+	"github.com/m-a-r-a-t/L0/internal/http_server/controllers/order"
+	"github.com/m-a-r-a-t/L0/internal/http_server/repositories"
+	"github.com/m-a-r-a-t/L0/internal/http_server/services"
 )
 
 type httpServer struct {
@@ -16,7 +17,9 @@ type httpServer struct {
 
 func InitHttpServer(db *sql.DB, ordersCache *map[string][]byte) *httpServer {
 
-	orderService := services.NewOrderService(db, ordersCache)
+	orderRepo := repositories.NewOrderRepo(db)
+
+	orderService := services.NewOrderService(db, ordersCache, orderRepo)
 
 	orderController := order.NewOrderController(orderService)
 
