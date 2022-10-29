@@ -1,4 +1,4 @@
-CREATE TABLE public."Order" (
+CREATE TABLE "Order" (
 	order_uid text primary key unique not null,
 	track_number text not null,
 	entry text not null,

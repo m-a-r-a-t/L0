@@ -8,23 +8,22 @@ import (
 	"github.com/gorilla/schema"
 )
 
-func ValidatBodyAndGetData[T interface{}](data []byte) (*T, error) {
+func ValidatBodyAndGetData[T interface{}](data []byte) (T, error) {
 	var s T
 	validate := v.New()
-
-	err := json.Unmarshal(data, s)
-
-	if err != nil {
-		return nil, err
-	}
-
-	validate.Struct(s)
+	err := json.Unmarshal(data, &s)
 
 	if err != nil {
-		return nil, err
+		return s, err
 	}
 
-	return &s, nil
+	err = validate.Struct(s)
+
+	if err != nil {
+		return s, err
+	}
+
+	return s, nil
 }
 
 func ValidatQueryeAndGetData[T interface{}](values url.Values) (*T, error) {

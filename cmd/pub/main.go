@@ -1,27 +1,37 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+
+	"github.com/m-a-r-a-t/L0/internal/http_server/models"
 	stan "github.com/nats-io/stan.go"
 )
 
 func main() {
+
+	jsonFile, err := os.Open("model.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("Successfully Opened users.json")
+	defer jsonFile.Close()
+
+	var order models.Order
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+
+	json.Unmarshal(byteValue, &order)
+
 	sc, _ := stan.Connect("test-cluster", "1")
 
-	// Simple Synchronous Publisher
-	err := sc.Publish("foo", []byte("Hello World")) // does not return until an ack has been received from NATS Streaming
+	err = sc.Publish("orders", byteValue)
 
 	if err != nil {
 		panic(err)
 	}
 
-	// Simple Async Subscriber
-	// sub, _ := sc.Subscribe("foo", func(m *stan.Msg) {
-	// 	fmt.Printf("Received a message: %s\n", string(m.Data))
-	// })
-
-	// // Unsubscribe
-	// sub.Unsubscribe()
-
-	// // Close connection
 	sc.Close()
 }

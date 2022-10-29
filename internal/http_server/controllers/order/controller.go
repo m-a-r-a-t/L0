@@ -1,6 +1,8 @@
 package order
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 	// "github.com/m-a-r-a-t/L0/pkg/validator"
 )
@@ -10,18 +12,20 @@ type getOrderController struct {
 }
 
 func (c *getOrderController) GetOrder(f *fiber.Ctx) error {
-	// queryData, err := validator.ValidatQueryeAndGetData[GetOrderQuery]()
-	var query GetOrderQuery
+	query := GetOrderQuery{}
 	err := f.QueryParser(&query)
-
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
-	order, err := c.orderService.GetOrderById(query.id)
+	order, err := c.orderService.GetOrderById(query.Id)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
+	f.Response().Header.Add("Content-Type", "application/json; charset=utf-8")
+
 	return f.Send(order)
 
 }

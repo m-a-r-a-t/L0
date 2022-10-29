@@ -1,12 +1,11 @@
 package repositories
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/m-a-r-a-t/L0/internal/http_server/models"
 )
@@ -15,15 +14,67 @@ type orderRepo struct {
 	db *sql.DB
 }
 
-func (o *orderRepo) GetOrderById(id string) (*models.Order, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	row := o.db.QueryRowContext(ctx, "SELECT")
-	fmt.Println(row)
-	return &models.Order{}, nil
+// func (o *orderRepo) GetOrderById(id string) (*models.Order, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
+// 	row := o.db.QueryRowContext(ctx, "SELECT")
+// 	fmt.Println(row)
+// 	return &models.Order{}, nil
+// }
+
+func (o *orderRepo) GetAllOrders() ([]*models.Order, error) {
+	orders := []*models.Order{}
+	rows, err := o.db.Query(`
+	SELECT o.order_uid , o.track_number ,o.entry ,o.locale ,o.internal_signature ,o.customer_id ,
+	o.delivery_service ,o.shardkey ,o.sm_id ,o.date_created ,o.oof_shard ,d.name "delivery_name", d.phone ,d.zip ,
+	d.city ,d.address ,d.region ,d.email , p."transaction" ,p.request_id ,p.currency ,p.provider ,p.amount ,p.payment_dt ,p.bank ,
+	p.delivery_cost ,p.goods_total ,p.custom_fee ,i.chrt_id ,i.track_number "items_track_number" ,i.price ,i.rid ,i."name" "items_name" ,i.sale ,
+	i."size" ,i.total_price ,i.nm_id ,i.brand ,i.status 
+	FROM  "Order" o
+	LEFT JOIN "Items" i ON i.order_uid =o.order_uid 
+	LEFT JOIN "Payment" p ON o.order_uid =p."transaction" 
+	LEFT JOIN "Delivery" d ON o.order_uid = d.order_uid order by o.order_uid`)
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	var prevId string
+
+	for rows.Next() {
+		var order models.Order
+		var item models.Item
+		order.Items = []*models.Item{&item}
+
+		if err := rows.Scan(
+			&order.OrderUid, &order.TrackNumber, &order.Entry, &order.Locale, &order.InternalSignature, &order.CustomerId,
+			&order.DeliveryService, &order.Shardkey, &order.SmID, &order.DateCreated, &order.OofShard,
+			&order.Delivery.Name, &order.Delivery.Phone, &order.Delivery.Zip, &order.Delivery.City, &order.Delivery.Address, &order.Delivery.Region, &order.Delivery.Email,
+			&order.Payment.Transaction, &order.Payment.RequestId, &order.Payment.Currency, &order.Payment.Provider, &order.Payment.Amount, &order.Payment.PaymentDt, &order.Payment.Bank,
+			&order.Payment.DeliveryCost, &order.Payment.GoodsTotal, &order.Payment.CustomFee,
+			&item.ChrtId, &item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale,
+			&item.Size, &item.TotalPrice, &item.NmId, &item.Brand, &item.Status,
+		); err != nil {
+			log.Println(err.Error())
+		}
+
+		if prevId == *order.OrderUid {
+			length := len(orders)
+			orders[length-1].Items = append(orders[length-1].Items, &item)
+		} else {
+			orders = append(orders, &order)
+		}
+
+		prevId = *order.OrderUid
+		// ! если предыдущий равен текущему id то добавляем items
+
+	}
+
+	return orders, nil
 }
 
 func (o *orderRepo) InsertOrders(orders []*models.Order) error {
+	a := 0
 	var deliveryVals, itemsVals, orderVals, paymentVals []interface{}
 	orderStr := `INSERT INTO "Order" (order_uid, track_number, entry, locale,
 		internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard) VALUES`
@@ -38,7 +89,6 @@ func (o *orderRepo) InsertOrders(orders []*models.Order) error {
 
 	for i, order := range orders {
 		orderStr += getValuesFormatPostgreStr(i, 11)
-		fmt.Println(getValuesFormatPostgreStr(i, 11))
 		orderVals = append(orderVals, order.OrderUid, order.TrackNumber, order.Entry,
 			order.Locale, order.InternalSignature, order.CustomerId, order.DeliveryService,
 			order.Shardkey, order.SmID, order.DateCreated, order.OofShard)
@@ -48,10 +98,16 @@ func (o *orderRepo) InsertOrders(orders []*models.Order) error {
 			order.Delivery.Phone, order.Delivery.Zip, order.Delivery.City, order.Delivery.Address,
 			order.Delivery.Region, order.Delivery.Email)
 
-		itemsStr += getValuesFormatPostgreStr(i, 12)
-		itemsVals = append(itemsVals, order.OrderUid, order.Items.ChrtId, order.Items.TrackNumber,
-			order.Items.Price, order.Items.Rid, order.Items.Name, order.Items.Sale, order.Items.Size,
-			order.Items.TotalPrice, order.Items.NmId, order.Items.Brand, order.Items.Status)
+		for a < len(order.Items) {
+			itemsStr += getValuesFormatPostgreStr(i+a, 12)
+			a++
+		}
+
+		for _, item := range order.Items {
+			itemsVals = append(itemsVals, order.OrderUid, item.ChrtId, item.TrackNumber,
+				item.Price, item.Rid, item.Name, item.Sale, item.Size,
+				item.TotalPrice, item.NmId, item.Brand, item.Status)
+		}
 
 		paymentStr += getValuesFormatPostgreStr(i, 10)
 		paymentVals = append(paymentVals, order.Payment.Transaction, order.Payment.RequestId, order.Payment.Currency,
