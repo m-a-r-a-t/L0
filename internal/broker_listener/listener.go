@@ -76,6 +76,13 @@ func (bl *brokerListener) listen(ordersSub stan.Subscription, msgChan <-chan *st
 		}
 
 		bl.pendingOrders.mu.Lock()
+
+		if *order.OrderUid != *order.Payment.Transaction {
+			bl.pendingOrders.mu.Unlock()
+			msg.Ack()
+			continue
+		}
+
 		if _, ok := (*bl.ordersCache)[*order.OrderUid]; ok {
 			bl.pendingOrders.mu.Unlock()
 			msg.Ack()

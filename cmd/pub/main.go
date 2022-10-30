@@ -16,7 +16,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("Successfully Opened users.json")
+	
 	defer jsonFile.Close()
 
 	var order models.Order
